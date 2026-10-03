@@ -26,6 +26,9 @@ class Settings(BaseSettings):
         "http://127.0.0.1:5173",
         "http://localhost:3000",
         "http://localhost:4173",
+        "https://chellam-kanakku-ai.vercel.app",
+        "https://chellam-kanakku-ai-seven.vercel.app",
+        "https://chellam-kanakku-8jccz3ysg-my-garage1.vercel.app",
     ]
     
     @field_validator("CORS_ORIGINS", mode="before")
