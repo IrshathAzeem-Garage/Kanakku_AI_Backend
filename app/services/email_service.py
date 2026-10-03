@@ -12,6 +12,8 @@ from email.mime.application import MIMEApplication
 import datetime as dt
 from typing import Dict, Any, Optional, Tuple, Union
 import os
+import base64
+import requests
 
 from app.config import settings
 from app.utils.logger import logger
@@ -65,6 +67,85 @@ def get_email_body(shop_name: Optional[str] = None) -> str:
         f"Regards,\n"
         f"KANAKKU AI"
     )
+
+
+def send_via_resend_api(
+    pdf_bytes: bytes,
+    recipient_email: str,
+    subject: str,
+    body_text: str,
+    attachment_name: str,
+    resend_api_key: Optional[str] = None,
+    from_email: Optional[str] = None,
+    timeout: int = 15
+) -> Dict[str, Any]:
+    """
+    Sends daily PDF report via Resend HTTPS REST API (Port 443).
+    Bypasses cloud provider SMTP firewall blocks (e.g. Render Free Tier).
+    """
+    api_key = (resend_api_key or getattr(settings, "RESEND_API_KEY", "") or os.getenv("RESEND_API_KEY", "")).strip()
+    if not api_key:
+        return {"success": False, "detail": "RESEND_API_KEY not configured"}
+
+    sender = (from_email or getattr(settings, "RESEND_FROM_EMAIL", "") or os.getenv("RESEND_FROM_EMAIL", "KANAKKU AI <onboarding@resend.dev>")).strip()
+    
+    encoded_pdf = base64.b64encode(pdf_bytes).decode("utf-8")
+    payload = {
+        "from": sender,
+        "to": [recipient_email],
+        "subject": subject,
+        "text": body_text,
+        "attachments": [
+            {
+                "filename": attachment_name,
+                "content": encoded_pdf
+            }
+        ]
+    }
+
+    try:
+        response = requests.post(
+            "https://api.resend.com/emails",
+            headers={
+                "Authorization": f"Bearer {api_key}",
+                "Content-Type": "application/json"
+            },
+            json=payload,
+            timeout=timeout
+        )
+        if response.status_code in (200, 201):
+            data = response.json()
+            logger.info(f"Daily report PDF emailed via Resend HTTPS to {recipient_email}. ID: {data.get('id')}")
+            return {
+                "success": True,
+                "email_sent": True,
+                "email_status": "sent",
+                "message": "Daily account PDF generated and emailed successfully",
+                "recipient": recipient_email,
+                "attachment_filename": attachment_name,
+                "subject": subject
+            }
+        else:
+            err_text = response.text
+            logger.warning(f"Resend HTTPS dispatch returned {response.status_code}: {err_text}")
+            return {
+                "success": False,
+                "email_sent": False,
+                "email_status": "failed",
+                "message": "PDF was generated but email sending failed",
+                "detail": f"Resend API error ({response.status_code}): {err_text}",
+                "error_type": "RESEND_API_ERROR"
+            }
+    except Exception as e:
+        logger.error(f"Resend HTTPS connection failed: {e}")
+        return {
+            "success": False,
+            "email_sent": False,
+            "email_status": "failed",
+            "message": "PDF was generated but email sending failed",
+            "detail": f"Failed to connect to Resend API: {e}",
+            "error_type": "RESEND_API_ERROR"
+        }
 
 
 def verify_smtp_credentials(
@@ -178,6 +259,22 @@ def send_daily_report_email(
     attachment_name = filename or build_attachment_filename(shop_name, formatted_date)
     body_text = get_email_body(shop_name)
 
+    # 3b. Try Resend HTTPS API (Port 443 - Recommended for Render Free Tier)
+    resend_key = (getattr(settings, "RESEND_API_KEY", "") or os.getenv("RESEND_API_KEY", "")).strip()
+    if resend_key:
+        logger.info(f"Attempting email delivery via Resend HTTPS (port 443) to {recipient}...")
+        resend_result = send_via_resend_api(
+            pdf_bytes=pdf_bytes,
+            recipient_email=recipient,
+            subject=subject,
+            body_text=body_text,
+            attachment_name=attachment_name,
+            resend_api_key=resend_key
+        )
+        if resend_result.get("success"):
+            return resend_result
+        logger.warning(f"Resend HTTPS dispatch failed: {resend_result.get('detail')}. Falling back to Gmail SMTP...")
+
     # 4. Construct MIME Multipart Message
     msg = MIMEMultipart()
     msg["From"] = f"{shop_name or 'Chellam Traders'} <{user}>"
@@ -285,12 +382,17 @@ def send_daily_report_email(
         }
 
     except Exception as general_err:
+        err_msg = str(general_err).lower()
         logger.error(f"Unexpected error while sending daily report email: {type(general_err).__name__} - {general_err}")
+        if any(term in err_msg for term in ["network is unreachable", "connection timed out", "connection refused", "timeout", "errno 101", "errno 110"]):
+            detail_msg = "Render Free Tier blocks outbound SMTP ports 465/587. Please configure RESEND_API_KEY to send emails via HTTPS port 443."
+        else:
+            detail_msg = "An unexpected error occurred during email dispatch."
         return {
             "success": False,
             "email_sent": False,
             "email_status": "failed",
             "message": "PDF was generated but email sending failed",
-            "detail": "An unexpected error occurred during email dispatch.",
+            "detail": detail_msg,
             "error_type": "EMAIL_SENDING_FAILED"
         }

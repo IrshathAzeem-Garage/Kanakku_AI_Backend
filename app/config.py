@@ -48,6 +48,10 @@ class Settings(BaseSettings):
     UPLOAD_DIR: str = "uploads"
     MAX_FILE_SIZE_MB: int = 15
     
+    # Resend HTTPS Email Delivery (Works over HTTPS Port 443 on Render Free Tier)
+    RESEND_API_KEY: str = ""
+    RESEND_FROM_EMAIL: str = "KANAKKU AI <onboarding@resend.dev>"
+
     # Gmail SMTP Email Delivery (Configured via Environment Variables)
     GMAIL_USER: str = ""
     GMAIL_APP_PASSWORD: str = ""
