@@ -89,6 +89,13 @@ def send_via_resend_api(
 
     sender = (from_email or getattr(settings, "RESEND_FROM_EMAIL", "") or os.getenv("RESEND_FROM_EMAIL", "KANAKKU AI <onboarding@resend.dev>")).strip()
     
+    # Resend requires sending from a verified domain or 'onboarding@resend.dev'.
+    # Sending FROM public domains like @gmail.com or @yahoo.com will be rejected by Resend with 403.
+    if not sender or "@gmail.com" in sender.lower() or "@yahoo.com" in sender.lower() or "@outlook.com" in sender.lower():
+        sender = "KANAKKU AI <onboarding@resend.dev>"
+
+    reply_to = (getattr(settings, "GMAIL_USER", "") or os.getenv("GMAIL_USER", "")).strip()
+    
     encoded_pdf = base64.b64encode(pdf_bytes).decode("utf-8")
     payload = {
         "from": sender,
@@ -102,6 +109,8 @@ def send_via_resend_api(
             }
         ]
     }
+    if reply_to:
+        payload["reply_to"] = reply_to
 
     try:
         response = requests.post(
