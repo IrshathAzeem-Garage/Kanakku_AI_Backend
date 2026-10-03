@@ -166,6 +166,17 @@ class DailyRecordOut(BaseModel):
     image_url: Optional[str] = None
     image_hash: Optional[str] = None
     notes: Optional[str] = None
+
+    # Delivery & PDF metadata
+    pdf_generated_at: Optional[dt.datetime] = None
+    pdf_file_name: Optional[str] = None
+    whatsapp_status: Optional[str] = "not_sent"
+    whatsapp_message_id: Optional[str] = None
+    whatsapp_sent_at: Optional[dt.datetime] = None
+    whatsapp_error: Optional[str] = None
+    email_status: Optional[str] = "not_sent"
+    email_sent_at: Optional[dt.datetime] = None
+    email_error: Optional[str] = None
     
     customer_receipts: List[CustomerReceiptOut] = []
     digital_entries: List[DigitalEntryOut] = []
@@ -187,6 +198,73 @@ class DailyRecordSummary(BaseModel):
     total_own_money: float
     total_cash_box_expenses: float
     in_hand_money: float
+    pdf_generated_at: Optional[dt.datetime] = None
+    pdf_file_name: Optional[str] = None
+    whatsapp_status: Optional[str] = "not_sent"
+    email_status: Optional[str] = "not_sent"
     created_at: Optional[dt.datetime] = None
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class DailyRecordCreateResponse(DailyRecordOut):
+    success: bool = True
+    record_id: int
+    pdf_generated: bool = False
+    pdf_file_name: Optional[str] = None
+    email_sent: bool = False
+    email_status: str = "not_sent"
+    email_error: Optional[str] = None
+    whatsapp_sent: bool = False
+    whatsapp_status: str = "not_sent"
+    whatsapp_error: Optional[str] = None
+
+
+class DeliveryStatusOut(BaseModel):
+    record_id: int
+    pdf_generated: bool = False
+    pdf_generated_at: Optional[dt.datetime] = None
+    pdf_file_name: Optional[str] = None
+    email_sent: bool = False
+    email_status: str = "not_sent"
+    email_error: Optional[str] = None
+    recipient_email: Optional[str] = None
+    whatsapp_status: str = "not_sent"
+    whatsapp_message_id: Optional[str] = None
+    whatsapp_sent_at: Optional[dt.datetime] = None
+    whatsapp_error: Optional[str] = None
+    whatsapp_number: Optional[str] = None
+
+
+class EmailSendResponse(BaseModel):
+    success: bool
+    message: str
+    record_id: Optional[int] = None
+    email_sent: bool = False
+    email_status: str = "not_sent"
+    recipient: Optional[str] = None
+    attachment_filename: Optional[str] = None
+    # Backwards-compatible aliases
+    whatsapp_sent: bool = False
+    whatsapp_status: str = "not_sent"
+    whatsapp_error: Optional[str] = None
+
+
+class WhatsAppSendResponse(BaseModel):
+    success: bool
+    message: Optional[str] = None
+    record_id: int
+    whatsapp_sent: bool
+    whatsapp_status: str
+    whatsapp_message_id: Optional[str] = None
+    whatsapp_error: Optional[str] = None
+    email_sent: Optional[bool] = None
+
+
+class PDFGenerateResponse(BaseModel):
+    success: bool
+    record_id: int
+    pdf_generated: bool
+    pdf_file_name: str
+    pdf_generated_at: Optional[dt.datetime] = None
+

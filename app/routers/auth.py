@@ -77,9 +77,14 @@ def update_profile(
             )
         current_user.email = profile_data.email.strip()
 
+    if profile_data.whatsapp_number is not None:
+        clean_num = profile_data.whatsapp_number.strip()
+        current_user.whatsapp_number = clean_num if clean_num else None
+
     db.commit()
     db.refresh(current_user)
     
     user_out = UserOut.model_validate(current_user)
     user_out.shop = ShopOut.model_validate(shop) if shop else None
     return user_out
+

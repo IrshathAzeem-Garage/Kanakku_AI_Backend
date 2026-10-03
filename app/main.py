@@ -20,7 +20,19 @@ async def lifespan(app: FastAPI):
         ensure_initial_data()
     except Exception as e:
         logger.warning(f"Startup seed skipped (run 'alembic upgrade head' first): {e}")
+
+    # Safe validation of Gmail environment variables on startup (never logs secrets)
+    required_email_vars = ["GMAIL_USER", "GMAIL_APP_PASSWORD", "REPORT_EMAIL"]
+    missing_vars = [key for key in required_email_vars if not (getattr(settings, key, "") or os.getenv(key, "")).strip()]
+    if missing_vars:
+        logger.warning(
+            f"Gmail email service is not configured. Missing environment variable(s): {', '.join(missing_vars)}"
+        )
+    else:
+        logger.info("Gmail SMTP configuration detected and loaded from runtime environment.")
+
     yield
+
 
 
 app = FastAPI(

@@ -11,6 +11,7 @@ class User(Base):
     username = Column(String(80), unique=True, index=True, nullable=False)
     fullname = Column(String(120), nullable=False)
     email = Column(String(120), unique=True, index=True, nullable=False)
+    whatsapp_number = Column(String(50), nullable=True)
     password_hash = Column(String(255), nullable=False)
     role = Column(String(30), default="owner", nullable=False)
     is_active = Column(Boolean, default=True, nullable=False)

@@ -28,6 +28,27 @@ class DailyRecord(Base):
     image_url = Column(String(500), nullable=True)
     image_hash = Column(String(64), index=True, nullable=True)  # SHA-256
     notes = Column(Text, nullable=True)
+
+    # PDF & WhatsApp Delivery Metadata
+    pdf_generated_at = Column(DateTime, nullable=True)
+    pdf_file_name = Column(String(255), nullable=True)
+    whatsapp_status = Column(String(50), nullable=True, default="not_sent")  # not_sent, pending, sent, delivered, failed
+    whatsapp_message_id = Column(String(255), nullable=True)
+    whatsapp_sent_at = Column(DateTime, nullable=True)
+    whatsapp_error = Column(Text, nullable=True)
+    
+    # Email Delivery Aliases (Reusing delivery tracking columns without breaking DB schema)
+    @property
+    def email_status(self):
+        return self.whatsapp_status
+
+    @property
+    def email_sent_at(self):
+        return self.whatsapp_sent_at
+
+    @property
+    def email_error(self):
+        return self.whatsapp_error
     
     created_at = Column(DateTime, default=get_current_time)
     updated_at = Column(DateTime, default=get_current_time, onupdate=get_current_time)

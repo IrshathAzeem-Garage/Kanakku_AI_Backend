@@ -45,6 +45,13 @@ class Settings(BaseSettings):
     UPLOAD_DIR: str = "uploads"
     MAX_FILE_SIZE_MB: int = 15
     
+    # Gmail SMTP Email Delivery (Configured via Environment Variables)
+    GMAIL_USER: str = ""
+    GMAIL_APP_PASSWORD: str = ""
+    REPORT_EMAIL: str = ""
+    SMTP_HOST: str = "smtp.gmail.com"
+    SMTP_PORT: int = 465  # 465 for SSL, 587 for STARTTLS
+
     # Timezone
     APP_TIMEZONE: str = "Asia/Kolkata"
     

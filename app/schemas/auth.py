@@ -37,12 +37,14 @@ class UserCreate(BaseModel):
     fullname: str = Field(..., min_length=2)
     email: str = Field(..., min_length=5)
     password: str = Field(..., min_length=6)
+    whatsapp_number: Optional[str] = None
     role: Optional[str] = "owner"
 
 
 class UserUpdateProfile(BaseModel):
     fullname: Optional[str] = None
     email: Optional[str] = None
+    whatsapp_number: Optional[str] = None
 
 
 class UserOut(BaseModel):
@@ -50,6 +52,7 @@ class UserOut(BaseModel):
     username: str
     fullname: str
     email: str
+    whatsapp_number: Optional[str] = None
     role: str
     is_active: bool = True
     created_at: Optional[datetime] = None
