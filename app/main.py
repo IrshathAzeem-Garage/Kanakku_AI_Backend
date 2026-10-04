@@ -60,24 +60,18 @@ os.makedirs(settings.UPLOAD_DIR, exist_ok=True)
 app.mount("/uploads", StaticFiles(directory=settings.UPLOAD_DIR), name="uploads")
 
 
-# Cold-start wake up and database connectivity health endpoint
+# Lightweight cold-start wake up endpoint for Render free-tier
+@app.get("/api/health", tags=["Health"])
 @app.get("/health", tags=["Health"])
-def health_check(db: Session = Depends(get_db)):
+def health_check():
     """
-    Health check endpoint verifying backend liveness and PostgreSQL connectivity.
-    Never exposes database credentials in the response.
+    Lightweight health check endpoint verifying backend liveness and Render wake-up.
+    Fast, stateless, unauthenticated, and does not perform database queries or AI calls.
+    Returns HTTP 200 with status: ok.
     """
-    db_status = "unavailable"
-    try:
-        db.execute(text("SELECT 1"))
-        db_status = "connected"
-    except Exception as e:
-        logger.warning(f"PostgreSQL connectivity check error: {e}")
-
     return {
-        "status": "ok" if db_status == "connected" else "degraded",
-        "service": "kanakku-ai",
-        "database": db_status
+        "status": "ok",
+        "service": "kanakku-ai"
     }
 
 

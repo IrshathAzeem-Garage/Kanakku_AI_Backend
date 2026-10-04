@@ -12,12 +12,18 @@ client = TestClient(app)
 
 
 def test_health_check_endpoint():
-    """Verify cold-start Render wake-up endpoint."""
+    """Verify cold-start Render wake-up endpoint on both /health and /api/health."""
     response = client.get("/health")
     assert response.status_code == 200
     data = response.json()
     assert data["status"] == "ok"
     assert data["service"] == "kanakku-ai"
+
+    api_response = client.get("/api/health")
+    assert api_response.status_code == 200
+    api_data = api_response.json()
+    assert api_data["status"] == "ok"
+    assert api_data["service"] == "kanakku-ai"
 
 
 def test_login_flow_and_auth_me():
